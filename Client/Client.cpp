@@ -1,20 +1,82 @@
-// Client.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
+#include <WinSock2.h>
+#include <WS2tcpip.h>
+#include <stdio.h>
 
-#include <iostream>
+#pragma comment(lib, "Ws2_32.lib")
 
 int main()
 {
-    std::cout << "Hello World!\n";
+    // Initialize Winsock
+    WSADATA wsaData;
+    int result = WSAStartup(MAKEWORD(2, 2), &wsaData);
+    if (result != 0) {
+        printf("WSAStartup failed: %d\n", result);
+        return 1;
+    }
+    else
+    {
+        printf("Successful Winsock Initialization \n");
+    }
+
+    // Create a socket
+    SOCKET sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (sock == INVALID_SOCKET) {
+        printf("socket creation failed: %d\n", WSAGetLastError());
+        WSACleanup();
+        return 1;
+    }
+    else
+    {
+        printf("Successful Socket Creation \n");
+    }
+
+    // Connect to server
+    sockaddr_in serverAddr;
+    serverAddr.sin_family = AF_INET;
+    inet_pton(AF_INET, "127.0.0.1", &serverAddr.sin_addr); // Convert IPv4 address string to binary form
+    serverAddr.sin_port = htons(7777); // Server port
+    if (connect(sock, (sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR) {
+        printf("connect failed: %d\n", WSAGetLastError());
+        closesocket(sock);
+        WSACleanup();
+        return 1;
+    }
+    else
+    {
+        printf("Connected to server \n");
+    }
+    while (true) {
+
+        // Send data
+        printf("Enter text to send to the server: ");
+        char sendData[1024];
+        fgets(sendData, sizeof(sendData), stdin);
+
+        // Remove newline character from the input
+        size_t len = strlen(sendData);
+        if (sendData[len - 1] == '\n') {
+            sendData[len - 1] = '\0';
+        }
+
+        if (send(sock, sendData, strlen(sendData), 0) == SOCKET_ERROR) {
+            printf("send failed: %d\n", WSAGetLastError());
+            closesocket(sock);
+            WSACleanup();
+            return 1;
+        }
+        else
+        {
+            printf("Data sent to server \n");
+        }
+
+
+    }
+
+    // Close the socket
+    closesocket(sock);
+
+    // Cleanup Winsock
+    WSACleanup();
+
+    return 0;
 }
-
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menus
-// Debug program: F5 or Debug > Start Debugging menu
-
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file
