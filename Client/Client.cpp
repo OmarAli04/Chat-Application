@@ -4,18 +4,13 @@
 
 #pragma comment(lib, "Ws2_32.lib")
 
-int main()
-{
+int main() {
     // Initialize Winsock
     WSADATA wsaData;
     int result = WSAStartup(MAKEWORD(2, 2), &wsaData);
     if (result != 0) {
         printf("WSAStartup failed: %d\n", result);
         return 1;
-    }
-    else
-    {
-        printf("Successful Winsock Initialization \n");
     }
 
     // Create a socket
@@ -24,10 +19,6 @@ int main()
         printf("socket creation failed: %d\n", WSAGetLastError());
         WSACleanup();
         return 1;
-    }
-    else
-    {
-        printf("Successful Socket Creation \n");
     }
 
     // Connect to server
@@ -41,12 +32,11 @@ int main()
         WSACleanup();
         return 1;
     }
-    else
-    {
+    else {
         printf("Connected to server \n");
     }
-    while (true) {
 
+    while (true) {
         // Send data
         printf("Enter text to send to the server: ");
         char sendData[1024];
@@ -64,12 +54,9 @@ int main()
             WSACleanup();
             return 1;
         }
-        else
-        {
+        else {
             printf("Data sent to server \n");
         }
-
-
     }
 
     // Close the socket

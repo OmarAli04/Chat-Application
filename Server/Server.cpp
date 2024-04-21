@@ -1,12 +1,41 @@
-#include <WinSock2.h> // Include Winsock header
-#include <WS2tcpip.h> // Include for getaddrinfo function
+#include <WinSock2.h>
+#include <WS2tcpip.h>
 #include <stdio.h>
+#include <thread> // For std::thread
 
 #pragma comment(lib, "Ws2_32.lib")
 
+// Function to handle communication with a single client
+void HandleClient(SOCKET clientSock) {
+    while (true) {
+        // Receive message from client
+        char recvData[1024];
+        int recvSize = recv(clientSock, recvData, sizeof(recvData), 0);
+        if (recvSize == SOCKET_ERROR) {
+            printf("recv failed: %d\n", WSAGetLastError());
+            closesocket(clientSock);
+            return;
+        }
+        else if (recvSize == 0) {
+            // Connection closed by client
+            printf("Client disconnected\n");
+            closesocket(clientSock);
+            return;
+        }
 
-int main() 
-{
+        recvData[recvSize] = '\0';
+        printf("Received message from client: %s\n", recvData);
+
+        // Echo the received message back to the client
+        if (send(clientSock, recvData, recvSize, 0) == SOCKET_ERROR) {
+            printf("send failed: %d\n", WSAGetLastError());
+            closesocket(clientSock);
+            return;
+        }
+    }
+}
+
+int main() {
     // Initialize Winsock
     WSADATA wsaData;
     int result = WSAStartup(MAKEWORD(2, 2), &wsaData);
@@ -14,85 +43,55 @@ int main()
         printf("WSAStartup failed: %d\n", result);
         return 1;
     }
-    else
-    {
-        printf("Successful Winsock Initialization \n");
-    }
 
     // Create a socket
-    SOCKET sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (sock == INVALID_SOCKET) {
+    SOCKET serverSock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (serverSock == INVALID_SOCKET) {
         printf("socket creation failed: %d\n", WSAGetLastError());
         WSACleanup();
         return 1;
     }
-    else
-    {
-        printf("Successful Socket Creation \n");
-    }
 
-    // Bind a local address to the socket
-    sockaddr_in addr;
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    addr.sin_port = htons(7777);
-    if (bind(sock, (sockaddr*)&addr, sizeof(addr)) == SOCKET_ERROR) {
+    // Bind the socket
+    sockaddr_in serverAddr;
+    serverAddr.sin_family = AF_INET;
+    serverAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    serverAddr.sin_port = htons(7777);
+    if (bind(serverSock, (sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR) {
         printf("bind failed: %d\n", WSAGetLastError());
-        closesocket(sock);
+        closesocket(serverSock);
         WSACleanup();
         return 1;
-    }
-    else
-    {
-        printf("Successful Binding Local Address to Socket \n");
     }
 
     // Listen for incoming connections
-    if (listen(sock, SOMAXCONN) == SOCKET_ERROR) {
+    if (listen(serverSock, SOMAXCONN) == SOCKET_ERROR) {
         printf("listen failed: %d\n", WSAGetLastError());
-        closesocket(sock);
+        closesocket(serverSock);
         WSACleanup();
         return 1;
-    }
-    else
-    {
-        printf("Listening... \n");
     }
 
-    // Accept a connection
-    SOCKET clientSock = accept(sock, NULL, NULL);
-    if (clientSock == INVALID_SOCKET) {
-        printf("accept failed: %d\n", WSAGetLastError());
-        closesocket(sock);
-        WSACleanup();
-        return 1;
-    }
-    else
-    {
-        printf("Accepted Connection \n");
-    }
+    printf("Server started. Waiting for clients...\n");
 
     while (true) {
-
-
-        // Receive data
-        char recvData[1024];
-        int recvSize = recv(clientSock, recvData, sizeof(recvData), 0);
-        if (recvSize == SOCKET_ERROR) {
-            printf("recv failed: %d\n", WSAGetLastError());
-            closesocket(clientSock);
-            closesocket(sock);
+        // Accept client connection
+        SOCKET clientSock = accept(serverSock, NULL, NULL);
+        if (clientSock == INVALID_SOCKET) {
+            printf("accept failed: %d\n", WSAGetLastError());
+            closesocket(serverSock);
             WSACleanup();
             return 1;
         }
-        recvData[recvSize] = '\0';
-        printf("Received data: %s\n", recvData);
 
+        printf("Client connected\n");
 
+        // Start a new thread to handle communication with the client
+        std::thread(HandleClient, clientSock).detach();
     }
 
-    // Close the client socket
-    closesocket(clientSock);
+    // Close the server socket 
+    closesocket(serverSock);
 
     // Cleanup Winsock
     WSACleanup();
