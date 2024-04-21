@@ -12,7 +12,7 @@ void HandleClient(SOCKET clientSock) {
         char recvData[1024];
         int recvSize = recv(clientSock, recvData, sizeof(recvData), 0);
         if (recvSize == SOCKET_ERROR) {
-            printf("recv failed: %d\n", WSAGetLastError());
+            printf("Client disconnected\n", WSAGetLastError());
             closesocket(clientSock);
             return;
         }
@@ -84,7 +84,8 @@ int main() {
             return 1;
         }
 
-        printf("Client connected\n");
+        printf("client connected\n");
+
 
         // Start a new thread to handle communication with the client
         std::thread(HandleClient, clientSock).detach();
