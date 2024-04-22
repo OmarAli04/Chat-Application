@@ -361,7 +361,3 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
-
-# Debug folder
-# Uncomment this line to include the Debug folder
-Debug/
