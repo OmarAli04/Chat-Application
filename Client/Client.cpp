@@ -28,20 +28,22 @@ std::string encryptCaesarCipher(const std::string& message, int shift) {
     }
     return encryptedMessage;
 }
+
+std::string username;
 // Function to sign up a new user
 bool SignUp(SOCKET sock) {
-    char username[1024];
+    char tempUsername[1024];
     char password[1024];
 
     printf("Enter a username: ");
-    fgets(username, sizeof(username), stdin);
+    fgets(tempUsername, sizeof(tempUsername), stdin);
     printf("Enter a password: ");
     fgets(password, sizeof(password), stdin);
 
     // Remove newline characters from input
-    size_t len_user = strlen(username);
-    if (username[len_user - 1] == '\n') {
-        username[len_user - 1] = '\0';
+    size_t len_user = strlen(tempUsername);
+    if (tempUsername[len_user - 1] == '\n') {
+        tempUsername[len_user - 1] = '\0';
     }
     size_t len_pass = strlen(password);
     if (password[len_pass - 1] == '\n') {
@@ -49,10 +51,10 @@ bool SignUp(SOCKET sock) {
     }
 
     // Open the user file to check for duplicates
-    std::ifstream userFile("user_info.txt");
+    std::ifstream userFile("/user_info.txt");
     std::string line;
     while (std::getline(userFile, line)) {
-        if (line.find(username) != std::string::npos) {
+        if (line.find(tempUsername) != std::string::npos) {
             printf("Username already exists. Please choose another one.\n");
             return false;
         }
@@ -60,17 +62,18 @@ bool SignUp(SOCKET sock) {
     userFile.close();
 
     // Send the signup data to the server
-    std::string signUpData = std::string(username) + " Signed Up \n";
+    std::string signUpData = std::string(tempUsername) + " Signed Up \n";
     if (send(sock, signUpData.c_str(), signUpData.size(), 0) == SOCKET_ERROR) {
         printf("send failed: %d\n", WSAGetLastError());
         return false;
     }
 
     // Save the username and password to the file
-    std::ofstream outFile("user_info.txt", std::ios::app);
+    std::ofstream outFile("/user_info.txt", std::ios::app);
     if (outFile.is_open()) {
-        outFile << username << " " << password << std::endl;
+        outFile << tempUsername << " " << password << std::endl;
         outFile.close();
+        username = tempUsername;
         printf("Sign up successful.\n");
         return true;
     }
@@ -82,13 +85,13 @@ bool SignUp(SOCKET sock) {
 
 // Function to login an existing user
 bool Login(SOCKET sock) {
-    char username[1024];
+    char tempUsername[1024];
     char password[1024];
 
     printf("Enter your username: ");
-    fgets(username, sizeof(username), stdin);
+    fgets(tempUsername, sizeof(tempUsername), stdin);
     // Remove newline character from username
-    username[strcspn(username, "\n")] = '\0';
+    tempUsername[strcspn(tempUsername, "\n")] = '\0';
 
     printf("Enter your password: ");
     fgets(password, sizeof(password), stdin);
@@ -100,7 +103,7 @@ bool Login(SOCKET sock) {
     std::string line;
     bool found = false;
     while (std::getline(userFile, line)) {
-        if (line.find(username) != std::string::npos && line.find(password) != std::string::npos) {
+        if (line.find(tempUsername) != std::string::npos && line.find(password) != std::string::npos) {
             found = true;
             break;
         }
@@ -108,7 +111,7 @@ bool Login(SOCKET sock) {
     userFile.close();
 
     // Send the login data to the server
-    std::string loginData = std::string(username) + " Logged In \n";
+    std::string loginData = std::string(tempUsername) + " Logged In \n";
     if (send(sock, loginData.c_str(), loginData.size(), 0) == SOCKET_ERROR) {
         printf("send failed: %d\n", WSAGetLastError());
         return false;
@@ -116,18 +119,18 @@ bool Login(SOCKET sock) {
 
     // If matching credentials found, return true; otherwise, return false
     if (found) {
+        username = tempUsername;
         printf("Login successful.\n");
         return true;
     }
     else {
         printf("Login failed. Invalid username or password.\n");
         return false;
+        
     }
 
 
 }
-
-
 
 
 int main() {
@@ -161,61 +164,62 @@ int main() {
     else {
         printf("Connected to server \n");
     }
+    while (true) {
+        // Sign up or login
+        printf("1. Sign up\n2. Login\nChoose an option: ");
+        int choice;
+        scanf_s("%d", &choice);
+        getchar(); // Consume the newline character
+        bool loggedIn = false;
 
-    // Sign up or login
-    printf("1. Sign up\n2. Login\nChoose an option: ");
-    int choice;
-    scanf_s("%d", &choice);
-    getchar(); // Consume the newline character
-    bool loggedIn = false;
-
-    if (choice == 1) {
-        if (SignUp(sock)) {
-            loggedIn = true;
-        }
-    }
-    else if (choice == 2) {
-        if (Login(sock)) {
-            loggedIn = true;
-        }
-    }
-    else {
-        printf("Invalid choice.\n");
-    }
-
-    // If logged in, proceed to chat panel
-    if (loggedIn) {
-        while (true) {
-            // Send data
-            printf("Enter text to send to the server (Type 'exit' to Logout): ");
-            char sendData[1024];
-            fgets(sendData, sizeof(sendData), stdin);
-
-            // Remove newline character from the input
-            size_t len = strlen(sendData);
-            if (sendData[len - 1] == '\n') {
-                sendData[len - 1] = '\0';
-            }
-
-            // Check for "exit" keyword to logout
-            if (strcmp(sendData, "exit") == 0) {
-                loggedIn = false;
-                break;
-            }
-
-            std::string encryptedData = encryptCaesarCipher(sendData, 5);
-
-            if (send(sock, encryptedData.c_str(), encryptedData.size(), 0) == SOCKET_ERROR) {
-                printf("send failed: %d\n", WSAGetLastError());
-                closesocket(sock);
-                WSACleanup();
-                return 1;
-            }
-            else {
-                printf("Data sent to server \n");
+        if (choice == 1) {
+            if (SignUp(sock)) {
+                loggedIn = true;
             }
         }
-    }
+        else if (choice == 2) {
+            if (Login(sock)) {
+                loggedIn = true;
+            }
+        }
+        else {
+            printf("Invalid choice.\n");
+        }
+
+        // If logged in, proceed to chat panel
+        if (loggedIn) {
+            while (true) {
+                // Send data
+                printf("Enter text to send to the server (Type 'exit' to Logout): ");
+                char sendData[1024];
+                fgets(sendData, sizeof(sendData), stdin);
+
+                // Remove newline character from the input
+                size_t len = strlen(sendData);
+                if (sendData[len - 1] == '\n') {
+                    sendData[len - 1] = '\0';
+                }
+
+                // Check for "exit" keyword to logout
+                if (strcmp(sendData, "exit") == 0) {
+                    loggedIn = false;
+                    break;
+                }
+
+                std::string encryptedData = encryptCaesarCipher(sendData, 5);
+                std::string messageWithUsername = username + ": " + encryptedData;
+                if (send(sock, messageWithUsername.c_str(), messageWithUsername.size(), 0) == SOCKET_ERROR) {
+                    printf("send failed: %d\n", WSAGetLastError());
+                    closesocket(sock);
+                    WSACleanup();
+                    return 1;
+                }
+                else {
+                    printf("Data sent to server \n");
+                }
+            }
+        }
+    } 
 
     // Close the socket
     closesocket(sock);

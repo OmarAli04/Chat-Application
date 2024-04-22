@@ -8,6 +8,8 @@
 // Function to handle communication with a single client
 void HandleClient(SOCKET clientSock) {
     while (true) {
+
+
         // Receive message from client
         char recvData[1024];
         int recvSize = recv(clientSock, recvData, sizeof(recvData), 0);
@@ -24,7 +26,7 @@ void HandleClient(SOCKET clientSock) {
         }
 
         recvData[recvSize] = '\0';
-        printf("Received message from client: %s\n", recvData);
+        printf("Received message from %s\n", recvData);
 
         // Echo the received message back to the client
         if (send(clientSock, recvData, recvSize, 0) == SOCKET_ERROR) {
