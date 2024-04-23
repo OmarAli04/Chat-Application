@@ -90,7 +90,6 @@ void HandleClient(SOCKET clientSock) {
     }
 }
 
-// Function to sign up a new user
 bool SignUp(SOCKET sock) {
     char tempUsername[1024];
     char password[1024];
@@ -108,6 +107,40 @@ bool SignUp(SOCKET sock) {
     size_t len_pass = strlen(password);
     if (password[len_pass - 1] == '\n') {
         password[len_pass - 1] = '\0';
+    }
+
+    // Password rules validation
+    std::string passString(password);
+    if (passString.length() < 8) {
+        SetConsoleTextAttribute(hConsole, FOREGROUND_RED);
+        printf("Password must be at least 8 characters long.\n");
+        SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
+        return false;
+    }
+
+    bool hasNumber = false;
+    bool hasSpecial = false;
+    for (char c : passString) {
+        if (isdigit(c)) {
+            hasNumber = true;
+        }
+        else if (!isalpha(c) && !isdigit(c)) {
+            hasSpecial = true;
+        }
+    }
+
+    if (!hasNumber) {
+        SetConsoleTextAttribute(hConsole, FOREGROUND_RED);
+        printf("Password must include at least one number.\n");
+        SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
+        return false;
+    }
+
+    if (!hasSpecial) {
+        SetConsoleTextAttribute(hConsole, FOREGROUND_RED);
+        printf("Password must include at least one special character.\n");
+        SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
+        return false;
     }
 
     // Open the user file to check for duplicates
@@ -138,6 +171,7 @@ bool SignUp(SOCKET sock) {
         return false;
     }
 }
+
 
 // Function to login an existing user
 bool Login(SOCKET sock) {
@@ -180,7 +214,9 @@ bool Login(SOCKET sock) {
         return true;
     }
     else {
+        SetConsoleTextAttribute(hConsole, FOREGROUND_RED);
         printf("Login failed. Invalid username or password.\n");
+        SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
         return false;
     }
 }
