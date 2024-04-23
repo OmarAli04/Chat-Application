@@ -8,7 +8,6 @@ This chat application allows users to communicate with each other over a network
 - Login: Registered users can log in to their accounts.
 - Real-time messaging: Users can send and receive messages instantly.
 - Encryption: Messages are encrypted using the Caesar cipher for security.
-- Multi-platform: The application is designed to work on Windows platforms.
 
 ## Prerequisites
 - Windows operating system
