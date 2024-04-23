@@ -116,8 +116,11 @@ bool SignUp(SOCKET sock) {
     std::ifstream userFile("user_info.txt");
     std::string line;
     while (std::getline(userFile, line)) {
-        if (line.find(tempUsername) != std::string::npos) {
+        std::string EncDuplicate = encryptCaesarCipher(tempUsername, 5);
+        if (line.find(EncDuplicate) != std::string::npos) {
+            SetConsoleTextAttribute(hConsole, FOREGROUND_RED);
             printf("Username already exists. Please choose another one.\n");
+            SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
             return false;
         }
     }
@@ -165,6 +168,14 @@ bool Login(SOCKET sock) {
     // Remove newline character from password
     password[strcspn(password, "\n")] = '\0';
 
+    // Check if username or password is empty
+    if (strlen(tempUsername) == 0 || strlen(password) == 0) {
+        SetConsoleTextAttribute(hConsole, FOREGROUND_RED);
+        printf("Login failed. Username or password cannot be empty.\n");
+        SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
+        return false;
+    }
+
     // Open the user file to check for matching credentials
     std::ifstream userFile("user_info.txt");
     std::string line;
@@ -173,13 +184,17 @@ bool Login(SOCKET sock) {
         std::string encryptedPassw = encryptCaesarCipher(password, 5);
         std::string encryptedUsern = encryptCaesarCipher(tempUsername, 5);
         if (line.find(encryptedUsern) != std::string::npos && line.find(encryptedPassw) != std::string::npos) {
-            found = true;
-            break;
+            // Check if the entire username and password match
+            size_t passIndex = line.find(' ');
+            std::string storedUsern = line.substr(0, passIndex);
+            std::string storedPassw = line.substr(passIndex + 1);
+            if (encryptedUsern == storedUsern && encryptedPassw == storedPassw) {
+                found = true;
+                break;
+            }
         }
     }
     userFile.close();
-
-
 
     // If matching credentials found, return true; otherwise, return false
     if (found) {
@@ -291,7 +306,7 @@ int main() {
     std::thread(ReceiveMessages, sock).detach();
     while (true) {
         // Sign up or login
-        printf("1. Sign up\n2. Login\nChoose an option: ");
+        printf("1. Sign up\n2. Login\nChoose an option (Ctrl + C to end app at anytime): ");
         int choice;
         scanf_s("%d", &choice);
         getchar(); // Consume the newline character
