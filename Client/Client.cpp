@@ -52,6 +52,8 @@ std::string caesarDecrypt(const std::string& cipherText, int shift) {
 
 // Global variable username
 std::string username;
+// Get the handle to the console (colors)
+HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 
 // Function to sign up a new user
 bool SignUp(SOCKET sock) {
@@ -100,7 +102,7 @@ bool SignUp(SOCKET sock) {
         outFile.close();
         username = tempUsername;
         printf("Sign up successful.\n");
-        printf("Enter messages to send to client (Type 'exit' to Logout): \n");
+        printf("Enter messages in blank space to send to client (Type 'exit' to Logout): \n");
         return true;
     }
     else {
@@ -150,7 +152,7 @@ bool Login(SOCKET sock) {
             return false;
         }
         printf("Login successful.\n");
-        printf("Enter messages to send to client (Type 'exit' to Logout): \n");
+        printf("Enter messages in blank space to send to client (Type 'exit' to Logout): \n");
         return true;
     }
     else {
@@ -168,23 +170,49 @@ void ReceiveMessages(SOCKET sock) {
         char recvData[1024];
         int recvSize = recv(sock, recvData, sizeof(recvData), 0);
         if (recvSize == SOCKET_ERROR) {
+            // Set text color to red
+            SetConsoleTextAttribute(hConsole, FOREGROUND_RED);
             printf("Client Disconnected\n");
+            // Reset text color to default
+            SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
             closesocket(sock);
-            return;
+            break;
         }
         else if (recvSize == 0) {
             printf("Server disconnected\n");
             closesocket(sock);
-            return;
+            break;
         }
         recvData[recvSize] = '\0';
         // Decrypt received message using Caesar cipher decryption
         std::string decryptedData = caesarDecrypt(recvData, 5);
+        // Set text color to orange
+        SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN);
         printf("Received message from %s\n", decryptedData.c_str());
+        // Reset text color to default
+        SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
     }
 }
 
 int main() {
+
+    std::cout << R"(
+
+
+       _____  _             _                              _    _____  _  _               _     ___  
+      / ____|| |           | |       /\                   | |  / ____|| |(_)             | |   |__ \ 
+     | |     | |__    __ _ | |_     /  \    _ __   _ __   | | | |     | | _   ___  _ __  | |_     ) |
+     | |     | '_ \  / _` || __|   / /\ \  | '_ \ | '_ \  | | | |     | || | / _ \| '_ \ | __|   / / 
+     | |____ | | | || (_| || |_   / ____ \ | |_) || |_) | | | | |____ | || ||  __/| | | || |_   / /_ 
+      \_____||_| |_| \__,_| \__| /_/    \_\| .__/ | .__/  | |  \_____||_||_| \___||_| |_| \__| |____|
+                                           | |    | |     | |                                        
+                                           |_|    |_|     |_|                                        
+
+    )" << std::endl;
+
+    // Get the handle to the console (colors)
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+
     // Initialize Winsock
     WSADATA wsaData;
     int result = WSAStartup(MAKEWORD(2, 2), &wsaData);
@@ -276,7 +304,10 @@ int main() {
                     return 1;
                 }
                 else {
+                    SetConsoleTextAttribute(hConsole, FOREGROUND_GREEN);
                     printf("Message sent to client\n");
+                    // Reset text color to default
+                    SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
                 }
             }
         }

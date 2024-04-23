@@ -10,6 +10,8 @@
 
 SOCKET clientSock;
 std::string username;
+// Get the handle to the console (colors)
+HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 
 std::string encryptCaesarCipher(const std::string& message, int shift) {
     std::string encryptedMessage = "";
@@ -62,20 +64,26 @@ void HandleClient(SOCKET clientSock) {
         char recvData[1024];
         int recvSize = recv(clientSock, recvData, sizeof(recvData), 0);
         if (recvSize == SOCKET_ERROR) {
+            SetConsoleTextAttribute(hConsole, FOREGROUND_RED);
             printf("Client disconnected\n", WSAGetLastError());
+            SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
             closesocket(clientSock);
             return;
         }
         else if (recvSize == 0) {
             // Connection closed by client
+            SetConsoleTextAttribute(hConsole, FOREGROUND_RED);
             printf("Client disconnected\n");
+            SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
             closesocket(clientSock);
             return;
         }
 
         recvData[recvSize] = '\0';
         std::string decryptedData = caesarDecrypt(recvData, 5);
+        SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN);
         printf("Received message from %s\n", decryptedData.c_str(), "\n");
+        SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
         
 
     }
@@ -122,7 +130,6 @@ bool SignUp(SOCKET sock) {
         outFile.close();
         username = tempUsername;
         printf("Sign up successful.\n");
-        std::cout << "Enter messages to send to client: \n";
         return true;
     }
     else {
@@ -168,7 +175,6 @@ bool Login(SOCKET sock) {
     if (found) {
         username = tempUsername;
         printf("Login successful.\n");
-        std::cout << "Enter message to send to client: \n";
         return true;
     }
     else {
@@ -179,6 +185,22 @@ bool Login(SOCKET sock) {
 
 int main() {
     
+    std::cout << R"(
+
+       _____  _             _                              _    _____  _  _               _     __ 
+      / ____|| |           | |       /\                   | |  / ____|| |(_)             | |   /_ |
+     | |     | |__    __ _ | |_     /  \    _ __   _ __   | | | |     | | _   ___  _ __  | |_   | |
+     | |     | '_ \  / _` || __|   / /\ \  | '_ \ | '_ \  | | | |     | || | / _ \| '_ \ | __|  | |
+     | |____ | | | || (_| || |_   / ____ \ | |_) || |_) | | | | |____ | || ||  __/| | | || |_   | |
+      \_____||_| |_| \__,_| \__| /_/    \_\| .__/ | .__/  | |  \_____||_||_| \___||_| |_| \__|  |_|
+                                           | |    | |     | |                                      
+                                           |_|    |_|     |_|                                      
+
+    )" << std::endl;
+
+    // Get the handle to the console (colors)
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+
     bool loggedIn = false;
     while (!loggedIn) {
         // Ask the client to sign up or login
@@ -236,8 +258,8 @@ int main() {
             return 1;
         }
 
-        printf("Server started. Waiting for clients...\n");
-
+        printf("-----Server started-----\n");
+        std::cout << "--Wait for Client to LogIn then Enter message in blank space to send to client-- \n";
 
 
         // Accept client connection
@@ -260,19 +282,30 @@ int main() {
             std::string messageUsername = username + ": " + message;
             std::string encryptedData = encryptCaesarCipher(messageUsername, 5);
             if (send(clientSock, encryptedData.c_str(), encryptedData.size(), 0) == SOCKET_ERROR) {
-                printf("Error sending message to client\n");
+                SetConsoleTextAttribute(hConsole, FOREGROUND_RED);
+                printf("Client Not Available :(\n");
+                SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
                 closesocket(clientSock);
                 break;
             }
             else {
+                SetConsoleTextAttribute(hConsole, FOREGROUND_GREEN);
                 printf("Message sent to client\n");
+                SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
             }
 
+            if (message == "exit") { // Compare the string directly
+                std::string disconnect = ": Client Logged Out ";
+                std::string logoutenc = encryptCaesarCipher(disconnect, 5);
+                if (send(clientSock, logoutenc.c_str(), logoutenc.size(), 0) == SOCKET_ERROR) {
+                    printf("send failed: %d\n", WSAGetLastError());
+                    return false;
+                }
+                loggedIn = false;
+                break;
+            }
         }
-        // Close the server socket 
-        closesocket(serverSock);
     }
-
 
 
 
