@@ -34,6 +34,7 @@ std::string encryptCaesarCipher(const std::string& message, int shift) {
     }
     return encryptedMessage;
 }
+
 std::string caesarDecrypt(const std::string& cipherText, int shift) {
     std::string decryptedText = "";
 
@@ -61,16 +62,16 @@ void HandleClient(SOCKET clientSock) {
     while (true) {
 
         // Receive message from client
-        char recvData[1024];
-        int recvSize = recv(clientSock, recvData, sizeof(recvData), 0);
-        if (recvSize == SOCKET_ERROR) {
+        char recvmsg[1024];
+        int msgSize = recv(clientSock, recvmsg, sizeof(recvmsg), 0);
+        if (msgSize == SOCKET_ERROR) {
             SetConsoleTextAttribute(hConsole, FOREGROUND_RED);
             printf("Client disconnected\n", WSAGetLastError());
             SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
             closesocket(clientSock);
             return;
         }
-        else if (recvSize == 0) {
+        else if (msgSize == 0) {
             // Connection closed by client
             SetConsoleTextAttribute(hConsole, FOREGROUND_RED);
             printf("Client disconnected\n");
@@ -79,8 +80,8 @@ void HandleClient(SOCKET clientSock) {
             return;
         }
 
-        recvData[recvSize] = '\0';
-        std::string decryptedData = caesarDecrypt(recvData, 5);
+        recvmsg[msgSize] = '\0';
+        std::string decryptedData = caesarDecrypt(recvmsg, 5);
         SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN);
         printf("Received message from %s\n", decryptedData.c_str(), "\n");
         SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
@@ -88,7 +89,6 @@ void HandleClient(SOCKET clientSock) {
 
     }
 }
-
 
 // Function to sign up a new user
 bool SignUp(SOCKET sock) {
@@ -126,7 +126,8 @@ bool SignUp(SOCKET sock) {
     std::ofstream outFile("server_user_info.txt", std::ios::app);
     if (outFile.is_open()) {
         std::string encryptedPass = encryptCaesarCipher(password, 5);
-        outFile << tempUsername << " " << encryptedPass << std::endl;
+        std::string encryptedUser = encryptCaesarCipher(tempUsername, 5);
+        outFile << encryptedUser << " " << encryptedPass << std::endl;
         outFile.close();
         username = tempUsername;
         printf("Sign up successful.\n");
@@ -164,7 +165,8 @@ bool Login(SOCKET sock) {
     bool found = false;
     while (std::getline(userFile, line)) {
         std::string encryptedPassw = encryptCaesarCipher(password, 5);
-        if (line.find(tempUsername) != std::string::npos && line.find(encryptedPassw) != std::string::npos) {
+        std::string encryptedUsern = encryptCaesarCipher(tempUsername, 5);
+        if (line.find(encryptedUsern) != std::string::npos && line.find(encryptedPassw) != std::string::npos) {
             found = true;
             break;
         }
@@ -259,7 +261,7 @@ int main() {
         }
 
         printf("-----Server started-----\n");
-        std::cout << "--Wait for Client to LogIn then Enter message in blank space to send to client-- \n";
+        std::cout << "--Wait for Client to LogIn then Enter message in blank space to send to client ('exit' to end client)-- \n";
 
 
         // Accept client connection

@@ -8,6 +8,9 @@
 
 #pragma comment(lib, "Ws2_32.lib")
 
+// Global variable username
+std::string username;
+
 std::string encryptCaesarCipher(const std::string& message, int shift) {
     std::string encryptedMessage = "";
     for (char c : message) {
@@ -29,6 +32,7 @@ std::string encryptCaesarCipher(const std::string& message, int shift) {
     }
     return encryptedMessage;
 }
+
 std::string caesarDecrypt(const std::string& cipherText, int shift) {
     std::string decryptedText = "";
 
@@ -50,8 +54,7 @@ std::string caesarDecrypt(const std::string& cipherText, int shift) {
     return decryptedText;
 }
 
-// Global variable username
-std::string username;
+
 // Get the handle to the console (colors)
 HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 
@@ -98,7 +101,8 @@ bool SignUp(SOCKET sock) {
     std::ofstream outFile("user_info.txt", std::ios::app);
     if (outFile.is_open()) {
         std::string encryptedPass = encryptCaesarCipher(password, 5);
-        outFile << tempUsername << " " << encryptedPass << std::endl;
+        std::string encryptedUser = encryptCaesarCipher(tempUsername, 5);
+        outFile << encryptedUser << " " << encryptedPass << std::endl;
         outFile.close();
         username = tempUsername;
         printf("Sign up successful.\n");
@@ -132,7 +136,8 @@ bool Login(SOCKET sock) {
     bool found = false;
     while (std::getline(userFile, line)) {
         std::string encryptedPassw = encryptCaesarCipher(password, 5);
-        if (line.find(tempUsername) != std::string::npos && line.find(encryptedPassw) != std::string::npos) {
+        std::string encryptedUsern = encryptCaesarCipher(tempUsername, 5);
+        if (line.find(encryptedUsern) != std::string::npos && line.find(encryptedPassw) != std::string::npos) {
             found = true;
             break;
         }
@@ -167,9 +172,9 @@ bool Login(SOCKET sock) {
 void ReceiveMessages(SOCKET sock) {
     while (true) {
         // Receive message from server
-        char recvData[1024];
-        int recvSize = recv(sock, recvData, sizeof(recvData), 0);
-        if (recvSize == SOCKET_ERROR) {
+        char recvmsg[1024];
+        int msgSize = recv(sock, recvmsg, sizeof(recvmsg), 0);
+        if (msgSize == SOCKET_ERROR) {
             // Set text color to red
             SetConsoleTextAttribute(hConsole, FOREGROUND_RED);
             printf("Client Disconnected\n");
@@ -178,14 +183,14 @@ void ReceiveMessages(SOCKET sock) {
             closesocket(sock);
             break;
         }
-        else if (recvSize == 0) {
+        else if (msgSize == 0) {
             printf("Server disconnected\n");
             closesocket(sock);
             break;
         }
-        recvData[recvSize] = '\0';
+        recvmsg[msgSize] = '\0';
         // Decrypt received message using Caesar cipher decryption
-        std::string decryptedData = caesarDecrypt(recvData, 5);
+        std::string decryptedData = caesarDecrypt(recvmsg, 5);
         // Set text color to orange
         SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN);
         printf("Received message from %s\n", decryptedData.c_str());
@@ -235,7 +240,9 @@ int main() {
     inet_pton(AF_INET, "127.0.0.1", &serverAddr.sin_addr); // Convert IPv4 address string to binary form
     serverAddr.sin_port = htons(7777); // Server port
     if (connect(sock, (sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR) {
-        printf("connect failed: %d\n", WSAGetLastError());
+        SetConsoleTextAttribute(hConsole, FOREGROUND_RED);
+        printf("Client 1 Offline");
+        SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
         closesocket(sock);
         WSACleanup();
         return 1;
@@ -298,7 +305,9 @@ int main() {
                 std::string encryptedData = encryptCaesarCipher(messageUsername, 5);
                 //std::string messageWithUsername = username + ":" + sendData;
                 if (send(sock, encryptedData.c_str(), encryptedData.size(), 0) == SOCKET_ERROR) {
-                    printf("send failed: %d\n", WSAGetLastError());
+                    SetConsoleTextAttribute(hConsole, FOREGROUND_RED);
+                    printf("Client 1 Offline");
+                    SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
                     closesocket(sock);
                     WSACleanup();
                     return 1;
