@@ -26,6 +26,7 @@ This chat application allows users to communicate with each other over a network
 ## Usage
 - Server:
   - Run the server application.
+  - Sign up or log in with a username and password.
   - Wait for clients to connect.
 - Client:
   - Run the client application.
